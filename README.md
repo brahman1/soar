@@ -124,3 +124,15 @@ The portable build runs Vinext directly without a host `timeout` command. The ma
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+# SOAR — Soraya Architecture Studio
+
+La version de production pour Render est prête dans ce dépôt. Lire **[RENDER.md](RENDER.md)** pour les champs à renseigner, les secrets et le disque persistant. Le fichier `render.yaml` permet aussi un déploiement Blueprint.
+
+- Build Render : `npm ci --include=dev && npm run build`
+- Serveur Render : `npm start`
+- Administration : `/admin`, avec `ADMIN_EMAIL` et `ADMIN_PASSWORD`
+- Tests Render : `npm run test:render`
+- Le stockage du site existant n'est pas inclus dans Git : les projets et les photos sont des données distinctes.
+
+Le reste de ce document décrit le starter de l'hébergement d'origine, conservé pour compatibilité.
+

@@ -1,5 +1,5 @@
 {
-  "name": "site-creator-vinext-starter",
+  "name": "soar-architecture-studio",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -8,12 +8,15 @@
   "scripts": {
     "install:ci": "node scripts/install-ci.mjs",
     "dev": "node scripts/run-framework.mjs dev",
-    "build": "node scripts/run-framework.mjs build",
-    "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
+    "build": "node render/build.mjs",
+    "start": "node dist-render/server.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "test": "node --test tests/validation.test.mjs tests/improvements.test.mjs",
-    "test:integration": "node tests/run-integration.mjs"
+    "test:integration": "node tests/run-integration.mjs",
+    "build:sites": "node scripts/run-framework.mjs build",
+    "start:sites": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
+    "test:render": "npm run build && node tests/render.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -51,6 +54,7 @@
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
     "drizzle-kit": "0.31.10",
+    "esbuild": "^0.28.2",
     "eslint": "9.39.4",
     "eslint-config-next": "16.3.4",
     "json-rpc-2.0": "1.7.1",

@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: soar
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    disk:
+      name: soar-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: DATA_DIR
+        value: /var/data
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: INDEXING_ENABLED
+        value: "true"
