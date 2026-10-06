@@ -1,0 +1,10 @@
+import { env } from 'cloudflare:workers';
+export class HttpError extends Error {constructor(public status:number,message:string){super(message)}}
+export function identity(request:Request){const id=request.headers.get('oai-authenticated-user-id'),email=request.headers.get('oai-authenticated-user-email');return id&&email?{id,email}:null}
+export function isAdmin(request:Request){const user=identity(request);if(!user)return false;return (env.ADMIN_EMAILS??'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).includes(user.email.toLowerCase())}
+export function authorize(request:Request,write=false){const user=identity(request);if(!user)throw new HttpError(401,'Connectez-vous avec votre compte ChatGPT.');if(!isAdmin(request))throw new HttpError(403,'Ce compte n’est pas autorisé à administrer le site.');if(write){if(request.headers.get('origin')!==new URL(request.url).origin||request.headers.get('x-soar-admin')!=='1')throw new HttpError(403,'Requête non autorisée.');}return user}
+export function db(){if(!env.DB)throw new HttpError(503,'Le stockage des projets est temporairement indisponible.');return env.DB}
+export function bucket(){if(!env.BUCKET)throw new HttpError(503,'Le stockage des photos est temporairement indisponible.');return env.BUCKET}
+export function json(data:unknown,status=200){return Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}})}
+export function failure(error:unknown){if(error instanceof HttpError)return json({error:error.message},error.status);console.error('SOAR server operation failed',error instanceof Error?error.message:'unknown');return json({error:'Une erreur est survenue. Réessayez dans quelques instants.'},500)}
+export async function body(request:Request){if(!request.headers.get('content-type')?.startsWith('application/json'))throw new HttpError(415,'Format non pris en charge.');const text=await request.text();if(text.length>40000)throw new HttpError(413,'Contenu trop volumineux.');try{return JSON.parse(text)}catch{throw new HttpError(400,'Données invalides.')}}

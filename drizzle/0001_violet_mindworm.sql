@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `mutation_token` text DEFAULT '' NOT NULL;

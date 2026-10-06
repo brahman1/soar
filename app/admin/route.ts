@@ -1,0 +1,4 @@
+import adminHtml from '../../lib/admin-html';
+import { identity,isAdmin } from '../../lib/security';
+import { escape,htmlResponse } from '../../lib/render';
+export async function GET(request:Request){const user=identity(request);if(!user)return Response.redirect(new URL('/signin-with-chatgpt?return_to=%2Fadmin',request.url),302);if(!isAdmin(request))return htmlResponse('<!doctype html><html lang="fr"><title>Accès réservé — SOAR</title><h1>Cet espace est réservé au studio.</h1><p>Votre compte n’est pas autorisé à administrer ce site.</p><a href="/">Retour au site</a> · <a href="/signout-with-chatgpt?return_to=%2Fadmin" target="_top">Changer de compte</a></html>',403);return htmlResponse(adminHtml.replace('__AUTH_EMAIL__',escape(user.email)))}

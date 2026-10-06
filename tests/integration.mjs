@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';import fs from 'node:fs/promises';
+const base='http://127.0.0.1:5173';
+const login=await fetch(base+'/signin-with-chatgpt?return_to=%2Fadmin',{redirect:'manual'});const cookie=login.headers.get('set-cookie')?.split(';')[0];assert.ok(cookie,'Local sign-in cookie');
+const headers={Cookie:cookie,Origin:base,'X-SOAR-Admin':'1','Content-Type':'application/json'};
+async function request(url,method='GET',data,extra={}){return fetch(base+url,{method,headers:{...headers,...extra},...(data!==undefined?{body:typeof data==='string'||data instanceof Uint8Array?data:JSON.stringify(data)}:{})})}
+assert.equal((await fetch(base+'/api/admin/projects')).status,401);
+assert.equal((await request('/api/admin/projects','POST',{}, {Origin:'https://other.example'})).status,403);
+assert.equal((await request('/api/admin/uploads','POST','<svg onload="alert(1)"></svg>',{'Content-Type':'image/png'})).status,415);
+const image=await fs.readFile('public/assets/hero.jpg');const upload=await request('/api/admin/uploads','POST',image,{'Content-Type':'image/jpeg'});assert.equal(upload.status,201);const photo=await upload.json();
+const project={title:'Projet de test — Maison lumière',category:'Réhabilitation',location:'Montreuil',year:'2026',description:'Projet de démonstration utilisé uniquement pour les tests locaux.',position:0,status:'draft',images:[{id:photo.id,alt:'Pièce de vie lumineuse — photographie de démonstration'}]};
+const created=await request('/api/admin/projects','POST',project);assert.equal(created.status,201);const {id}=await created.json();
+assert.equal((await fetch(base+'/projets/'+id)).status,404);assert.equal((await fetch(base+'/media/'+photo.id)).status,404);
+let list=await(await request('/api/admin/projects')).json();let p=list.projects.find(p=>p.id===id);assert.equal(p.status,'draft');
+assert.equal((await request('/api/admin/projects/'+id,'PUT',{...project,status:'published',version:p.version})).status,200);
+assert.equal((await fetch(base+'/projets/'+id)).status,200);assert.equal((await fetch(base+'/media/'+photo.id)).status,200);const home=await(await fetch(base+'/')).text();assert.ok(home.includes('href="/projets/'+id+'"'));assert.ok(home.includes('LES PROJETS'));assert.ok(!home.includes('class="gallery-note"'));
+assert.equal((await request('/api/admin/projects/'+id,'PUT',{...project,version:p.version})).status,409);
+list=await(await request('/api/admin/projects')).json();p=list.projects.find(p=>p.id===id);assert.equal((await request('/api/admin/projects/'+id,'PUT',{...project,status:'archived',version:p.version})).status,200);
+assert.equal((await fetch(base+'/projets/'+id)).status,404);assert.equal((await fetch(base+'/media/'+photo.id)).status,404);
+list=await(await request('/api/admin/projects')).json();p=list.projects.find(p=>p.id===id);assert.equal((await request('/api/admin/projects/'+id,'PUT',{...project,status:'draft',version:p.version})).status,200);
+console.log('Passed: authentication, CSRF, upload validation, persistent draft, publication, gallery, private photos, conflict handling, archive and restore.');

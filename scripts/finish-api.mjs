@@ -1,0 +1,3 @@
+import fs from 'node:fs';
+fs.writeFileSync('app/api/admin/projects/route.ts',`import {authorize,failure,json} from '../../../../lib/security';\nimport {listProjects} from '../../../../lib/projects';\nimport {saveProject} from '../../../../lib/save-project';\nexport async function GET(request:Request){try{authorize(request);return json({projects:await listProjects(true)})}catch(e){return failure(e)}}\nexport async function POST(request:Request){return saveProject(request)}\n`);
+fs.writeFileSync('app/api/admin/projects/[id]/route.ts',`import {saveProject} from '../../../../../lib/save-project';\nexport async function PUT(request:Request,{params}:{params:Promise<{id:string}>}){const{id}=await params;return saveProject(request,id)}\n`);
