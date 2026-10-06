@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict';import fs from 'node:fs/promises';
+const base='http://127.0.0.1:5173',login=await fetch(base+'/signin-with-chatgpt?return_to=%2Fadmin',{redirect:'manual'}),cookie=login.headers.get('set-cookie').split(';')[0];
+const headers={Cookie:cookie,Origin:base,'X-SOAR-Admin':'1','Content-Type':'application/json'};
+async function req(path,method='GET',data){return fetch(base+path,{method,headers:{...headers,...(data instanceof FormData?{'Content-Type':undefined}:{})},...(data?{body:data instanceof FormData?data:JSON.stringify(data)}:{})})}
+const key=crypto.randomUUID(),draft={values:{title:'Travail non publié',images:[]},baseVersion:null,updatedAt:new Date().toISOString()};
+assert.equal((await fetch(base+'/api/admin/drafts/'+key)).status,401);
+let response=await req('/api/admin/drafts/'+key,'PUT',{snapshot:draft,revision:0});assert.equal(response.status,200);assert.equal((await response.json()).revision,1);
+response=await req('/api/admin/drafts/'+key);assert.equal((await response.json()).draft.snapshot.values.title,'Travail non publié');
+assert.equal((await req('/api/admin/drafts/'+key,'PUT',{snapshot:draft,revision:0})).status,409);
+assert.equal((await req('/api/admin/drafts/'+key,'PUT',{snapshot:{...draft,values:{title:'Version 2'}},revision:1})).status,200);
+await req('/api/admin/drafts/'+key,'DELETE',{revision:1});assert.equal((await(await req('/api/admin/drafts/'+key)).json()).draft.revision,2);
+await req('/api/admin/drafts/'+key,'DELETE',{revision:2});assert.equal((await(await req('/api/admin/drafts/'+key)).json()).draft,null);
+const source=await fs.readFile('public/assets/hero.jpg'),form=new FormData();for(const k of ['image','small','medium'])form.append(k,new Blob([source],{type:'image/jpeg'}),k+'.jpg');form.append('width','1800');form.append('height','1200');
+const upload=await fetch(base+'/api/admin/uploads',{method:'POST',headers:{Cookie:cookie,Origin:base,'X-SOAR-Admin':'1'},body:form});assert.equal(upload.status,201,await upload.clone().text());const photo=await upload.json();
+const payload={title:'Projet technique <script>alert(1)</script>',category:'Architecture',location:'Montreuil',year:'2026',description:'Description du projet pour les métadonnées.',position:0,status:'published',images:[{id:photo.id,alt:'Lumière naturelle'}]};
+const create=await req('/api/admin/projects','POST',payload);assert.equal(create.status,201);const{id}=await create.json();
+let page=await(await fetch(base+'/projets/'+id)).text();assert.ok(page.includes('rel="canonical"'));assert.ok(page.includes('og:image'));assert.ok(page.includes('application/ld+json'));assert.ok(page.includes('srcset='));assert.ok(page.includes('width="1800"'));assert.ok(!page.includes('<script>alert(1)</script>'));
+let sitemap=await(await fetch(base+'/sitemap.xml')).text();assert.ok(sitemap.includes('/projets/'+id));assert.ok(!(sitemap.includes('/admin')));assert.ok((await(await fetch(base+'/robots.txt')).text()).includes('Disallow: /'));
+const media=await fetch(base+'/media/'+photo.id+'?w=640');assert.equal(media.status,200);const etag=media.headers.get('etag');assert.ok(etag);assert.equal((await fetch(base+'/media/'+photo.id+'?w=640',{headers:{'If-None-Match':etag}})).status,304);
+const concurrent=await Promise.all([req('/api/admin/projects/'+id,'PUT',{...payload,title:'Modification A',version:1}),req('/api/admin/projects/'+id,'PUT',{...payload,title:'Modification B',version:1})]);assert.deepEqual(concurrent.map(r=>r.status).sort(),[200,409]);
+const history=await(await req('/api/admin/projects/'+id+'/history')).json();assert.equal(history.revisions.length,1);assert.equal(history.revisions[0].snapshot.title,payload.title);
+const list=await(await req('/api/admin/projects')).json(),project=list.projects.find(p=>p.id===id);await req('/api/admin/projects/'+id,'PUT',{...payload,status:'archived',version:project.version});
+assert.equal((await fetch(base+'/media/'+photo.id+'?w=640',{headers:{'If-None-Match':etag}})).status,404);
+sitemap=await(await fetch(base+'/sitemap.xml')).text();assert.ok(!sitemap.includes('/projets/'+id));
+assert.equal((await fetch(base+'/api/admin/export')).status,401);const exported=await req('/api/admin/export');assert.ok(exported.headers.get('content-disposition'));assert.equal((await exported.json()).format,'soar-portfolio-v1');
+assert.equal((await req('/api/admin/health')).status,200);assert.equal((await req('/api/admin/errors','POST',{code:'browser_error'})).status,200);assert.ok((await(await req('/api/admin/health')).json()).errors.length);
+const backup=await req('/api/admin/backup');assert.equal(backup.status,200);const bytes=new Uint8Array(await backup.arrayBuffer());assert.equal(new TextDecoder().decode(bytes.slice(0,14)),'portfolio.json');assert.ok(bytes.length>source.length);
+console.log('Passed: draft recovery, optimistic locks, responsive uploads, ETag, archive privacy, SEO escaping, sitemap, history, backup, export and diagnostics.');

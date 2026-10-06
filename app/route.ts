@@ -1,3 +1,4 @@
 import { listProjects } from '../lib/projects';
 import { home,htmlResponse } from '../lib/render';
-export async function GET(){return htmlResponse(home(await listProjects()))}
+import {metadata,origin} from '../lib/seo';
+export async function GET(request:Request){const projects=await listProjects(),base=origin(request);return htmlResponse(metadata(home(projects),{title:'SOAR — Soraya Architecture Studio à Montreuil',description:'Architecture et réhabilitation à Montreuil. Découvrez le studio SOAR, ses projets et son approche, des premières études au suivi de chantier.',url:base+'/',image:projects[0]?.images[0]?'/media/'+projects[0].images[0].id:'/assets/hero.jpg',jsonld:{'@context':'https://schema.org','@type':'ProfessionalService',name:'SOAR — Soraya Architecture Studio',url:base+'/',email:'contact@so-ar-studio.com',address:{'@type':'PostalAddress',streetAddress:'135 rue Émile Beaufils',postalCode:'93100',addressLocality:'Montreuil',addressCountry:'FR'}}}))}

@@ -1,0 +1,2 @@
+import {authorize,db,failure,json} from '../../../../../../lib/security';
+export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){try{authorize(request);const{id}=await params;const rows=await db().prepare('SELECT id,snapshot,created_at FROM project_revisions WHERE project_id=? ORDER BY created_at DESC LIMIT 20').bind(id).all<{id:string;snapshot:string;created_at:string}>();return json({revisions:rows.results.map(row=>({...row,snapshot:JSON.parse(row.snapshot)}))})}catch(e){return failure(e)}}

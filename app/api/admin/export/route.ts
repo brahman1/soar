@@ -1,0 +1,2 @@
+import {authorize,failure} from '../../../../lib/security';import {listProjects} from '../../../../lib/projects';
+export async function GET(request:Request){try{authorize(request);const projects=await listProjects(true);return new Response(JSON.stringify({format:'soar-portfolio-v1',exportedAt:new Date().toISOString(),projects},null,2),{headers:{'Content-Type':'application/json; charset=utf-8','Content-Disposition':'attachment; filename="soar-projets.json"','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}})}catch(e){return failure(e)}}

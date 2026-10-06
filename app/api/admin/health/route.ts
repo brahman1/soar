@@ -1,0 +1,2 @@
+import {authorize,bucket,db,failure,json} from '../../../../lib/security';
+export async function GET(request:Request){try{authorize(request);await db().prepare('SELECT 1 AS ok').first();await bucket().list({limit:1});const rows=await db().prepare('SELECT id,message,created_at FROM error_events ORDER BY created_at DESC LIMIT 10').all();return json({storage:'ok',errors:rows.results})}catch(e){return failure(e)}}

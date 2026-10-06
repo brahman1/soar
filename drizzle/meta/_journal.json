@@ -15,6 +15,20 @@
       "when": 1791303851033,
       "tag": "0001_violet_mindworm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791304623286,
+      "tag": "0002_many_redwing",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791304888129,
+      "tag": "0003_daffy_pixie",
+      "breakpoints": true
     }
   ]
 }

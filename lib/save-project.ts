@@ -13,8 +13,10 @@ export async function saveProject(request:Request,id?:string){try{
   const args=p.images.length?[...p.images.map(i=>i.id),id,user.id,p.images.length]:[];
   const result=await d.batch([
    d.prepare(`UPDATE projects SET title=?,category=?,location=?,year=?,description=?,status=?,position=?,updated_at=?,version=version+1,mutation_token=? WHERE id=? AND version=? AND ${clause}`).bind(p.title,p.category,p.location,p.year,p.description,p.status,p.position,now,token,id,data.version,...args),
+   d.prepare('INSERT INTO project_revisions(id,project_id,snapshot,created_at,created_by) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM projects WHERE id=? AND mutation_token=?)').bind(crypto.randomUUID(),id,JSON.stringify(old),now,user.id,id,token),
    d.prepare('UPDATE media SET project_id=NULL WHERE project_id=? AND EXISTS (SELECT 1 FROM projects WHERE id=? AND mutation_token=?)').bind(id,id,token),
-   ...p.images.map((i,n)=>d.prepare('UPDATE media SET project_id=?,alt=?,position=? WHERE id=? AND EXISTS (SELECT 1 FROM projects WHERE id=? AND mutation_token=?)').bind(id,i.alt,n,i.id,id,token))
+   ...p.images.map((i,n)=>d.prepare('UPDATE media SET project_id=?,alt=?,position=? WHERE id=? AND EXISTS (SELECT 1 FROM projects WHERE id=? AND mutation_token=?)').bind(id,i.alt,n,i.id,id,token)),
+   d.prepare('DELETE FROM project_revisions WHERE project_id=? AND id NOT IN (SELECT id FROM project_revisions WHERE project_id=? ORDER BY created_at DESC LIMIT 20)').bind(id,id)
   ]);
   if(!result[0].meta.changes)throw new HttpError(409,'Une modification simultanée a eu lieu. Rechargez le projet.');
   return json({id,version:data.version+1});
